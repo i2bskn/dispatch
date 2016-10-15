@@ -15,17 +15,19 @@ func (f HandlerFunc) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *ht
 	f(ctx, w, r)
 }
 
+type MiddlewareFunc func(Handler) Handler
+
 type Mux struct {
-	root   bool
-	ctx    context.Context
-	routes []*Route
+	root       bool
+	ctx        context.Context
+	routes     []*Route
+	middleware []MiddlewareFunc
 }
 
 func New() *Mux {
 	return &Mux{
-		root:   true,
-		ctx:    context.Background(),
-		routes: make([]*Route, 0),
+		root: true,
+		ctx:  context.Background(),
 	}
 }
 
@@ -42,15 +44,27 @@ func (mux *Mux) HandleFunc(path string, h func(context.Context, http.ResponseWri
 func (mux *Mux) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	c, ok := mux.match(mux.context(ctx), r)
 	if ok {
-		handler := getHandler(c)
-		handler.ServeHTTP(c, w, r)
+		obj := getShare(c)
+		h := obj.handler
+		for i := len(obj.middleware) - 1; i >= 0; i-- {
+			h = obj.middleware[i](h)
+		}
+		h.ServeHTTP(c, w, r)
 	} else {
 		http.NotFound(w, r)
 	}
 }
 
+func (mux *Mux) Use(middleware ...MiddlewareFunc) {
+	mux.middleware = append(mux.middleware, middleware...)
+}
+
 func (mux *Mux) Compatible() http.Handler {
 	return Compatible(mux)
+}
+
+func (mux *Mux) belonging() {
+	mux.root = false
 }
 
 func (mux *Mux) context(ctx context.Context) context.Context {
@@ -59,18 +73,37 @@ func (mux *Mux) context(ctx context.Context) context.Context {
 	}
 
 	if ctx == nil {
-		context.Background()
+		return context.Background()
 	}
 
 	return ctx
 }
 
 func (mux *Mux) match(ctx context.Context, r *http.Request) (context.Context, bool) {
+	cc := ctx
+	obj := getShare(cc)
+	if obj == nil {
+		obj = &share{path: r.URL.EscapedPath()}
+	}
+	obj.middleware = append(obj.middleware, mux.middleware...)
+	cc = setShare(cc, obj)
+
 	for _, route := range mux.routes {
-		c, ok := route.match(ctx, r)
+		mc, ok := route.match(cc, r)
 		if ok {
-			return c, true
+			return mc, true
 		}
 	}
+
 	return ctx, false
+}
+
+type share struct {
+	path       string
+	handler    Handler
+	middleware []MiddlewareFunc
+}
+
+func (s *share) foundRoute() {
+	s.path = ""
 }

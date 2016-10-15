@@ -21,6 +21,7 @@ func newRoute(path string, handler Handler) *Route {
 
 	switch h := handler.(type) {
 	case *Mux:
+		h.belonging()
 		route.leaf = false
 		route.mux = h
 	default:
@@ -48,7 +49,9 @@ func (rt *Route) match(ctx context.Context, r *http.Request) (context.Context, b
 	}
 
 	if rt.leaf {
-		c = setHandler(c, rt.handler)
+		obj := getShare(c)
+		obj.handler = rt.handler
+		c = setShare(c, obj)
 	} else {
 		c, ok = rt.mux.match(c, r)
 		if !ok {

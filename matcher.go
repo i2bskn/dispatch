@@ -32,19 +32,22 @@ func newMatcher(path string, broadMatch bool) *matcher {
 }
 
 func (m *matcher) match(ctx context.Context, r *http.Request) (context.Context, bool) {
-	rpath := getPath(ctx, r)
+	c := ctx
+	obj := getShare(c)
+	rpath := obj.path
 	if m.static {
 		if m.broadMatch {
 			if !strings.HasPrefix(rpath, m.raw) {
 				return ctx, false
 			}
 
-			rpath = rpath[len(m.raw):]
-			return setPath(ctx, rpath), true
+			obj.path = rpath[len(m.raw):]
+			return setShare(c, obj), true
 		}
 
 		if m.raw == rpath {
-			return setEmptyPath(ctx), true
+			obj.foundRoute()
+			return setShare(c, obj), true
 		} else {
 			return ctx, false
 		}
@@ -58,7 +61,6 @@ func (m *matcher) match(ctx context.Context, r *http.Request) (context.Context, 
 
 	params := make(map[string]string)
 
-	c := ctx
 	eop := len(rpath) - 1
 	if rtokenSize > tokenSize {
 		if m.broadMatch {
@@ -68,7 +70,8 @@ func (m *matcher) match(ctx context.Context, r *http.Request) (context.Context, 
 					s++
 					if s == tokenSize {
 						eop = i - 1
-						c = setPath(c, rpath[i:])
+						obj.path = rpath[i:]
+						c = setShare(c, obj)
 						break
 					}
 				}
@@ -105,7 +108,8 @@ func (m *matcher) match(ctx context.Context, r *http.Request) (context.Context, 
 	}
 
 	if !m.broadMatch {
-		c = setEmptyPath(c)
+		obj.foundRoute()
+		c = setShare(c, obj)
 	}
 	return c, true
 }
