@@ -85,7 +85,7 @@ func (mux *Mux) match(ctx context.Context, r *http.Request) (context.Context, bo
 	obj := getShare(cc)
 	if obj == nil {
 		path := r.URL.EscapedPath()
-		obj = &share{path: cleanPath(path)}
+		obj = newShare(cleanPath(path))
 		if obj.path != path {
 			obj.handler = HTTPHandlerWrapper{
 				http.RedirectHandler(obj.path, http.StatusMovedPermanently),
@@ -99,7 +99,8 @@ func (mux *Mux) match(ctx context.Context, r *http.Request) (context.Context, bo
 	for _, route := range mux.routes {
 		mc, ok := route.match(cc, r)
 		if ok {
-			return mc, true
+			obj := getShare(mc)
+			return setParam(mc, obj.params), true
 		}
 	}
 
@@ -125,8 +126,16 @@ func cleanPath(p string) string {
 
 type share struct {
 	path       string
+	params     map[string]string
 	handler    Handler
 	middleware []MiddlewareFunc
+}
+
+func newShare(path string) *share {
+	return &share{
+		path:   path,
+		params: make(map[string]string),
+	}
 }
 
 func (s *share) foundRoute() {

@@ -13,30 +13,30 @@ const (
 )
 
 type matcher struct {
-	raw        string
-	tokens     []string
-	names      map[int]string
-	broadMatch bool
-	static     bool
+	raw      string
+	tokens   []string
+	names    map[int]string
+	explicit bool
+	static   bool
 }
 
-func newMatcher(path string, broadMatch bool) *matcher {
+func newMatcher(path string, explicit bool) *matcher {
 	tokens, names, static := buildTokens(path)
 	return &matcher{
-		raw:        path,
-		tokens:     tokens,
-		names:      names,
-		broadMatch: broadMatch,
-		static:     static,
+		raw:      path,
+		tokens:   tokens,
+		names:    names,
+		explicit: explicit,
+		static:   static,
 	}
 }
 
 func (m *matcher) match(ctx context.Context, r *http.Request) (context.Context, bool) {
 	c := ctx
 	obj := getShare(c)
-	rpath := obj.path
+	rpath := normalizePath(obj.path)
 	if m.static {
-		if m.broadMatch {
+		if !m.explicit {
 			if !strings.HasPrefix(rpath, m.raw) {
 				return ctx, false
 			}
@@ -59,11 +59,11 @@ func (m *matcher) match(ctx context.Context, r *http.Request) (context.Context, 
 		return ctx, false
 	}
 
-	params := make(map[string]string)
-
 	eop := len(rpath) - 1
 	if rtokenSize > tokenSize {
-		if m.broadMatch {
+		if m.explicit {
+			return ctx, false
+		} else {
 			s := 0
 			for i := 1; i <= eop; i++ {
 				if rpath[i] == tokenSep {
@@ -76,8 +76,6 @@ func (m *matcher) match(ctx context.Context, r *http.Request) (context.Context, 
 					}
 				}
 			}
-		} else {
-			return ctx, false
 		}
 	}
 
@@ -87,7 +85,7 @@ func (m *matcher) match(ctx context.Context, r *http.Request) (context.Context, 
 		if rpath[i] == tokenSep {
 			rtoken := rpath[fot:i]
 			if m.tokens[idx] == namedExp {
-				params[m.names[idx]] = rtoken[1:]
+				obj.params[m.names[idx]] = rtoken[1:]
 			} else {
 				if m.tokens[idx] != rtoken {
 					return ctx, false
@@ -96,9 +94,10 @@ func (m *matcher) match(ctx context.Context, r *http.Request) (context.Context, 
 			fot = i
 			idx++
 		} else if i == eop {
-			rtoken := rpath[fot:i]
+			size := i + 1
+			rtoken := rpath[fot:size]
 			if m.tokens[idx] == namedExp {
-				params[m.names[idx]] = rtoken[1:]
+				obj.params[m.names[idx]] = rtoken[1:]
 			} else {
 				if m.tokens[idx] != rtoken {
 					return ctx, false
@@ -107,11 +106,19 @@ func (m *matcher) match(ctx context.Context, r *http.Request) (context.Context, 
 		}
 	}
 
-	if !m.broadMatch {
+	if m.explicit {
 		obj.foundRoute()
-		c = setShare(c, obj)
 	}
+	c = setShare(c, obj)
 	return c, true
+}
+
+func normalizePath(path string) string {
+	idx := len(path) - 1
+	if idx > 0 && path[idx] == tokenSep {
+		return path[:idx]
+	}
+	return path
 }
 
 func buildTokens(path string) ([]string, map[int]string, bool) {

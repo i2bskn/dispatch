@@ -28,7 +28,7 @@ func newRoute(path string, handler Handler) *Route {
 		route.handler = h
 	}
 
-	route.pattern = newMatcher(path, !route.leaf)
+	route.pattern = newMatcher(path, route.leaf)
 
 	return route
 }
