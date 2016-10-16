@@ -1,6 +1,7 @@
 package pygmy
 
 import (
+	"context"
 	"net/http"
 )
 
@@ -16,4 +17,12 @@ func Compatible(handler Handler) http.Handler {
 
 func (c CompatibleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c.Handler.ServeHTTP(nil, w, r)
+}
+
+type HTTPHandlerWrapper struct {
+	http.Handler
+}
+
+func (h HTTPHandlerWrapper) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	h.Handler.ServeHTTP(w, r)
 }

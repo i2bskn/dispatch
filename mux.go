@@ -3,6 +3,7 @@ package pygmy
 import (
 	"context"
 	"net/http"
+	"path"
 )
 
 type Handler interface {
@@ -83,7 +84,14 @@ func (mux *Mux) match(ctx context.Context, r *http.Request) (context.Context, bo
 	cc := ctx
 	obj := getShare(cc)
 	if obj == nil {
-		obj = &share{path: r.URL.EscapedPath()}
+		path := r.URL.EscapedPath()
+		obj = &share{path: cleanPath(path)}
+		if obj.path != path {
+			obj.handler = HTTPHandlerWrapper{
+				http.RedirectHandler(obj.path, http.StatusMovedPermanently),
+			}
+			return setShare(cc, obj), true
+		}
 	}
 	obj.middleware = append(obj.middleware, mux.middleware...)
 	cc = setShare(cc, obj)
@@ -96,6 +104,23 @@ func (mux *Mux) match(ctx context.Context, r *http.Request) (context.Context, bo
 	}
 
 	return ctx, false
+}
+
+func cleanPath(p string) string {
+	if p == "" {
+		return "/"
+	}
+
+	if p[0] != '/' {
+		p = "/" + p
+	}
+
+	np := path.Clean(p)
+	if p[len(p)-1] == '/' && np != "/" {
+		np += "/"
+	}
+
+	return np
 }
 
 type share struct {
