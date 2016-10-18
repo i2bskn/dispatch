@@ -10,8 +10,10 @@ import (
 	"github.com/i2bskn/pygmy"
 )
 
+// RecoverFunc is recover middleware function.
 type RecoverFunc func(context.Context, http.ResponseWriter, string)
 
+// NewRecover returns default recover middleware.
 func NewRecover() pygmy.MiddlewareFunc {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	f := func(ctx context.Context, w http.ResponseWriter, err string) {
@@ -22,6 +24,7 @@ func NewRecover() pygmy.MiddlewareFunc {
 	return MakeRecover(f)
 }
 
+// MakeRecover returns custom recover middleware by RecoverFunc.
 func MakeRecover(f RecoverFunc) pygmy.MiddlewareFunc {
 	return func(h pygmy.Handler) pygmy.Handler {
 		return pygmy.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {

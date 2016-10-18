@@ -17,7 +17,7 @@ func fakeCompatibleHandler(want string) http.Handler {
 	return Compatible(mux)
 }
 
-func TestCompatible(_ *testing.T) {
+func TestCompatible(t *testing.T) {
 	var _ http.Handler = Compatible(New())
 }
 
@@ -39,4 +39,8 @@ func TestCompatibleHandler(t *testing.T) {
 	if want != string(data) {
 		t.Fatalf("got: %#v\nwant: %#v", string(data), want)
 	}
+}
+
+func TestHTTPHandlerWrapper(t *testing.T) {
+	var _ Handler = HTTPHandlerWrapper{http.RedirectHandler("/", http.StatusMovedPermanently)}
 }

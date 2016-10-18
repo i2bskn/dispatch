@@ -26,6 +26,7 @@ func setParam(ctx context.Context, param map[string]string) context.Context {
 	return context.WithValue(ctx, paramKey, param)
 }
 
+// Param returns path parameter from context.
 func Param(ctx context.Context, key string) string {
 	if params, ok := ctx.Value(paramKey).(map[string]string); ok {
 		return params[key]

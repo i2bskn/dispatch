@@ -10,8 +10,10 @@ import (
 	"github.com/i2bskn/pygmy"
 )
 
+// LoggerFunc is logging middleware function.
 type LoggerFunc func(context.Context, *http.Request, time.Duration)
 
+// NewLogger returns default logging middleware.
 func NewLogger() pygmy.MiddlewareFunc {
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 	f := func(ctx context.Context, r *http.Request, p time.Duration) {
@@ -20,6 +22,7 @@ func NewLogger() pygmy.MiddlewareFunc {
 	return MakeLogger(f)
 }
 
+// MakeLogger returns custom logging middleware by LoggerFunc.
 func MakeLogger(f LoggerFunc) pygmy.MiddlewareFunc {
 	return func(h pygmy.Handler) pygmy.Handler {
 		return pygmy.HandlerFunc(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
