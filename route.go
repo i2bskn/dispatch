@@ -5,11 +5,12 @@ import (
 	"net/http"
 )
 
+// Route contains handler and routing information.
 type Route struct {
 	leaf    bool
 	handler Handler
 	mux     *Mux
-	method  HttpMethod
+	method  HTTPMethod
 	pattern *matcher
 }
 
@@ -33,7 +34,8 @@ func newRoute(path string, handler Handler) *Route {
 	return route
 }
 
-func (rt *Route) Verbs(m HttpMethod) *Route {
+// Verbs is change the allow HTTP methods.
+func (rt *Route) Verbs(m HTTPMethod) *Route {
 	rt.method = m
 	return rt
 }
@@ -68,10 +70,12 @@ func (rt *Route) isAcceptMethod(m string) bool {
 	return true
 }
 
-type HttpMethod uint16
+// HTTPMethod is type of HTTP method flag.
+type HTTPMethod uint16
 
+// These flags define HTTP methods that each Route to allow.
 const (
-	MethodGet HttpMethod = 1 << iota
+	MethodGet HTTPMethod = 1 << iota
 	MethodHead
 	MethodPost
 	MethodPut
@@ -82,9 +86,10 @@ const (
 	MethodTrace
 	MethodAny = MethodGet | MethodHead | MethodPost | MethodPut | MethodPatch | MethodDelete |
 		MethodConnect | MethodOptions | MethodTrace
+	MethodUnknown = HTTPMethod(0)
 )
 
-func parseMethod(m string) HttpMethod {
+func parseMethod(m string) HTTPMethod {
 	switch m {
 	case http.MethodGet:
 		return MethodGet
@@ -105,6 +110,6 @@ func parseMethod(m string) HttpMethod {
 	case http.MethodTrace:
 		return MethodTrace
 	default:
-		return HttpMethod(0)
+		return MethodUnknown
 	}
 }
