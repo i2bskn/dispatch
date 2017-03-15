@@ -48,19 +48,17 @@ func (n *node) add(pattern string, e *Entry) bool {
 	return true
 }
 
-func (n *node) mutch(path string, r *http.Request) (e *Entry, ok bool) {
+func (n *node) match(path string, r *http.Request) *Entry {
 	if n.kind != root {
 		i := len(n.label)
 		if len(path) < i || path[:i] != n.label {
-			return
+			return nil
 		}
 
 		if len(path) == i {
-			for _, entry := range n.entries {
-				if entry.isAcceptMethod(r.Method) {
-					e = entry
-					ok = true
-					return
+			for _, e := range n.entries {
+				if e.isAcceptMethod(r.Method) {
+					return e
 				}
 			}
 		}
@@ -69,12 +67,12 @@ func (n *node) mutch(path string, r *http.Request) (e *Entry, ok bool) {
 	}
 
 	for _, child := range n.childlen {
-		if e, ok = child.mutch(path, r); ok {
-			return
+		if e := child.match(path, r); e != nil {
+			return e
 		}
 	}
 
-	return
+	return nil
 }
 
 func (n *node) insertChild(pattern string, e *Entry) {
@@ -91,7 +89,6 @@ func (n *node) insertChild(pattern string, e *Entry) {
 				child.insertChild(pattern, e)
 			}
 		case ':':
-		case '*':
 		default:
 			child.kind = static
 			i := strings.IndexByte(pattern, '/')
@@ -108,7 +105,7 @@ func (n *node) insertChild(pattern string, e *Entry) {
 }
 
 func (n *node) split(i int) {
-	if i > 0 {
+	if 0 < i && i < len(n.label) {
 		child := new(node)
 		child.label = n.label[i:]
 		child.kind = n.kind

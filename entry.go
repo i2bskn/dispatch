@@ -13,9 +13,9 @@ type Entry struct {
 
 func newEntry(pattern string, h http.Handler) *Entry {
 	return &Entry{
-		path:   path,
-		h:      handler,
-		method: MethodAny,
+		pattern: pattern,
+		h:       h,
+		method:  MethodAny,
 	}
 }
 

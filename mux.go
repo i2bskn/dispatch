@@ -16,7 +16,7 @@ func New() *Mux {
 	return new(Mux)
 }
 
-func (mux *Mux) Handle(pattern string, h Handler) *Entry {
+func (mux *Mux) Handle(pattern string, h http.Handler) *Entry {
 	mux.mu.Lock()
 	defer mux.mu.Unlock()
 
@@ -24,7 +24,7 @@ func (mux *Mux) Handle(pattern string, h Handler) *Entry {
 		panic("http: invalid pattern " + pattern)
 	}
 
-	if handler == nil {
+	if h == nil {
 		panic("http: nil handler")
 	}
 
@@ -39,7 +39,7 @@ func (mux *Mux) Handle(pattern string, h Handler) *Entry {
 }
 
 func (mux *Mux) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Request)) *Entry {
-	return mux.Handle(pattern, http.HandleFunc(h))
+	return mux.Handle(pattern, http.HandlerFunc(h))
 }
 
 func (mux *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
