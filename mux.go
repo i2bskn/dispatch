@@ -1,110 +1,76 @@
-package pygmy
+package tensile
 
 import (
-	"context"
 	"net/http"
 	"path"
+	"sync"
 )
 
-type Handler interface {
-	ServeHTTP(context.Context, http.ResponseWriter, *http.Request)
-}
-
-type HandlerFunc func(context.Context, http.ResponseWriter, *http.Request)
-
-func (f HandlerFunc) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	f(ctx, w, r)
-}
-
-type MiddlewareFunc func(Handler) Handler
-
 type Mux struct {
-	root       bool
-	ctx        context.Context
-	routes     []*Route
+	mu         sync.RWMutex
+	m          *node
 	middleware []MiddlewareFunc
 }
 
 func New() *Mux {
-	return &Mux{
-		root: true,
-		ctx:  context.Background(),
+	return new(Mux)
+}
+
+func (mux *Mux) Handle(pattern string, h Handler) *Entry {
+	mux.mu.Lock()
+	defer mux.mu.Unlock()
+
+	if pattern == "" {
+		panic("http: invalid pattern " + pattern)
 	}
+
+	if handler == nil {
+		panic("http: nil handler")
+	}
+
+	if mux.m == nil {
+		mux.m = new(node)
+	}
+
+	p := cleanPath(pattern)
+	e := newEntry(p, h)
+	mux.m.add(p, e)
+	return e
 }
 
-func (mux *Mux) Handle(path string, h Handler) *Route {
-	route := newRoute(path, h)
-	mux.routes = append(mux.routes, route)
-	return route
+func (mux *Mux) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Request)) *Entry {
+	return mux.Handle(pattern, http.HandleFunc(h))
 }
 
-func (mux *Mux) HandleFunc(path string, h func(context.Context, http.ResponseWriter, *http.Request)) *Route {
-	return mux.Handle(path, HandlerFunc(h))
-}
-
-func (mux *Mux) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	c, ok := mux.match(mux.context(ctx), r)
-	if ok {
-		obj := getShare(c)
-		h := obj.handler
-		for i := len(obj.middleware) - 1; i >= 0; i-- {
-			h = obj.middleware[i](h)
+func (mux *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.RequestURI == "*" {
+		if r.ProtoAtLeast(1, 1) {
+			w.Header().Set("Connection", "close")
 		}
-		h.ServeHTTP(c, w, r)
-	} else {
-		http.NotFound(w, r)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
+
+	h := mux.Handler(r)
+	for i := len(mux.middleware) - 1; i >= 0; i-- {
+		h = mux.middleware[i](h)
+	}
+	h.ServeHTTP(w, r)
+}
+
+func (mux *Mux) Handler(r *http.Request) http.Handler {
+	mux.mu.RLock()
+	defer mux.mu.RUnlock()
+
+	if e := mux.m.match(r.URL.Path, r); e != nil {
+		return e.h
+	}
+
+	return http.NotFoundHandler()
 }
 
 func (mux *Mux) Use(middleware ...MiddlewareFunc) {
 	mux.middleware = append(mux.middleware, middleware...)
-}
-
-func (mux *Mux) Compatible() http.Handler {
-	return Compatible(mux)
-}
-
-func (mux *Mux) belonging() {
-	mux.root = false
-}
-
-func (mux *Mux) context(ctx context.Context) context.Context {
-	if mux.root && mux.ctx != nil {
-		return mux.ctx
-	}
-
-	if ctx == nil {
-		return context.Background()
-	}
-
-	return ctx
-}
-
-func (mux *Mux) match(ctx context.Context, r *http.Request) (context.Context, bool) {
-	cc := ctx
-	obj := getShare(cc)
-	if obj == nil {
-		path := r.URL.EscapedPath()
-		obj = newShare(cleanPath(path))
-		if obj.path != path {
-			obj.handler = HTTPHandlerWrapper{
-				http.RedirectHandler(obj.path, http.StatusMovedPermanently),
-			}
-			return setShare(cc, obj), true
-		}
-	}
-	obj.middleware = append(obj.middleware, mux.middleware...)
-	cc = setShare(cc, obj)
-
-	for _, route := range mux.routes {
-		mc, ok := route.match(cc, r)
-		if ok {
-			obj := getShare(mc)
-			return setParam(mc, obj.params), true
-		}
-	}
-
-	return ctx, false
 }
 
 func cleanPath(p string) string {
@@ -116,28 +82,5 @@ func cleanPath(p string) string {
 		p = "/" + p
 	}
 
-	np := path.Clean(p)
-	if p[len(p)-1] == '/' && np != "/" {
-		np += "/"
-	}
-
-	return np
-}
-
-type share struct {
-	path       string
-	params     map[string]string
-	handler    Handler
-	middleware []MiddlewareFunc
-}
-
-func newShare(path string) *share {
-	return &share{
-		path:   path,
-		params: make(map[string]string),
-	}
-}
-
-func (s *share) foundRoute() {
-	s.path = ""
+	return path.Clean(p)
 }
