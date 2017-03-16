@@ -82,5 +82,9 @@ func cleanPath(p string) string {
 		p = "/" + p
 	}
 
-	return path.Clean(p)
+	np := path.Clean(p)
+	if p[len(p)-1] == '/' && np != "/" {
+		np += "/"
+	}
+	return np
 }

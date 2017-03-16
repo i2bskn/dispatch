@@ -55,6 +55,15 @@ func (n *node) match(path string, r *http.Request) *Entry {
 			return nil
 		}
 
+		if n.kind == slash && len(n.entries) > 0 && len(r.URL.Path) > len(path) {
+			for _, e := range n.entries {
+				if e.isAcceptMethod(r.Method) {
+					r.URL.Path = path
+					return e
+				}
+			}
+		}
+
 		if len(path) == i {
 			for _, e := range n.entries {
 				if e.isAcceptMethod(r.Method) {
