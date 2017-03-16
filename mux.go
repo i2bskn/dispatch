@@ -51,22 +51,22 @@ func (mux *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h := mux.Handler(r)
+	h, r := mux.Handler(r)
 	for i := len(mux.middleware) - 1; i >= 0; i-- {
 		h = mux.middleware[i](h)
 	}
 	h.ServeHTTP(w, r)
 }
 
-func (mux *Mux) Handler(r *http.Request) http.Handler {
+func (mux *Mux) Handler(r *http.Request) (http.Handler, *http.Request) {
 	mux.mu.RLock()
 	defer mux.mu.RUnlock()
 
-	if e := mux.m.match(r.URL.Path, r); e != nil {
-		return e.h
+	if e, r := mux.m.match(r.URL.Path, r); e != nil {
+		return e.h, r
 	}
 
-	return http.NotFoundHandler()
+	return http.NotFoundHandler(), r
 }
 
 func (mux *Mux) Use(middleware ...MiddlewareFunc) {

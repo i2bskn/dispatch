@@ -124,29 +124,31 @@ func (n *node) split(i int) {
 	}
 }
 
-func (n *node) match(path string, r *http.Request) *Entry {
+func (n *node) match(path string, r *http.Request) (*Entry, *http.Request) {
 	if n.kind == param {
 		i := strings.IndexByte(path, '/')
 		if i >= 0 {
+			r = setParam(r, n.paramName, path[:i])
 			path = path[i:]
 		} else {
 			for _, e := range n.entries {
 				if e.isAcceptMethod(r.Method) {
-					return e
+					r = setParam(r, n.paramName, path)
+					return e, r
 				}
 			}
 		}
 	} else if n.kind != root {
 		i := len(n.label)
 		if len(path) < i || path[:i] != n.label {
-			return nil
+			return nil, r
 		}
 
 		if n.kind == slash && len(n.entries) > 0 && len(r.URL.Path) > len(path) {
 			for _, e := range n.entries {
 				if e.isAcceptMethod(r.Method) {
 					r.URL.Path = path
-					return e
+					return e, r
 				}
 			}
 		}
@@ -154,7 +156,7 @@ func (n *node) match(path string, r *http.Request) *Entry {
 		if len(path) == i {
 			for _, e := range n.entries {
 				if e.isAcceptMethod(r.Method) {
-					return e
+					return e, r
 				}
 			}
 		}
@@ -169,18 +171,18 @@ func (n *node) match(path string, r *http.Request) *Entry {
 			continue
 		}
 
-		if e := child.match(path, r); e != nil {
-			return e
+		if e, r := child.match(path, r); e != nil {
+			return e, r
 		}
 	}
 
 	for _, child := range children {
-		if e := child.match(path, r); e != nil {
-			return e
+		if e, r := child.match(path, r); e != nil {
+			return e, r
 		}
 	}
 
-	return nil
+	return nil, r
 }
 
 func min(a, b int) int {
