@@ -60,6 +60,11 @@ func (n *node) add(pattern string, e *Entry) bool {
 		}
 
 		pattern = pattern[i:]
+
+		if len(pattern) == 0 {
+			n.entries = append(n.entries, e)
+			return true
+		}
 	}
 
 	for _, child := range n.children {
