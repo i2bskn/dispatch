@@ -8,14 +8,17 @@ import (
 
 // Mux is http.ServeMux compatible HTTP multiplexer.
 type Mux struct {
-	mu         sync.RWMutex
-	m          *node
-	middleware []func(http.Handler) http.Handler
+	mu              sync.RWMutex
+	m               *node
+	middleware      []func(http.Handler) http.Handler
+	NotFoundHandler http.Handler
 }
 
 // New allocates and returns a new Mux.
 func New() *Mux {
-	return new(Mux)
+	return &Mux{
+		NotFoundHandler: http.NotFoundHandler(),
+	}
 }
 
 // Handle registers handler and returns Entry.
@@ -72,7 +75,7 @@ func (mux *Mux) Handler(r *http.Request) (http.Handler, *http.Request) {
 		return e.h, r
 	}
 
-	return http.NotFoundHandler(), r
+	return mux.NotFoundHandler, r
 }
 
 // Use registers middleware.
@@ -93,5 +96,6 @@ func cleanPath(p string) string {
 	if p[len(p)-1] == '/' && np != "/" {
 		np += "/"
 	}
+
 	return np
 }
