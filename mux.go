@@ -6,16 +6,19 @@ import (
 	"sync"
 )
 
+// Mux is http.ServeMux compatible HTTP multiplexer.
 type Mux struct {
 	mu         sync.RWMutex
 	m          *node
-	middleware []MiddlewareFunc
+	middleware []func(http.Handler) http.Handler
 }
 
+// New allocates and returns a new Mux.
 func New() *Mux {
 	return new(Mux)
 }
 
+// Handle registers handler and returns Entry.
 func (mux *Mux) Handle(pattern string, h http.Handler) *Entry {
 	mux.mu.Lock()
 	defer mux.mu.Unlock()
@@ -38,10 +41,12 @@ func (mux *Mux) Handle(pattern string, h http.Handler) *Entry {
 	return e
 }
 
+// HandleFunc registers handler function and returns Entry.
 func (mux *Mux) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Request)) *Entry {
 	return mux.Handle(pattern, http.HandlerFunc(h))
 }
 
+// ServeHTTP dispatches matching requests to handlers.
 func (mux *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.RequestURI == "*" {
 		if r.ProtoAtLeast(1, 1) {
@@ -58,6 +63,7 @@ func (mux *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.ServeHTTP(w, r)
 }
 
+// Handler returns a handler to dispatch from request.
 func (mux *Mux) Handler(r *http.Request) (http.Handler, *http.Request) {
 	mux.mu.RLock()
 	defer mux.mu.RUnlock()
@@ -69,7 +75,8 @@ func (mux *Mux) Handler(r *http.Request) (http.Handler, *http.Request) {
 	return http.NotFoundHandler(), r
 }
 
-func (mux *Mux) Use(middleware ...MiddlewareFunc) {
+// Use registers middleware.
+func (mux *Mux) Use(middleware ...func(http.Handler) http.Handler) {
 	mux.middleware = append(mux.middleware, middleware...)
 }
 
