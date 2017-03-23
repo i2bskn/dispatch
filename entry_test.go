@@ -34,7 +34,8 @@ func fakeHandlerFunc() http.HandlerFunc {
 }
 
 func TestIsAcceptMethod(t *testing.T) {
-	entry := newEntry("/", fakeHandlerFunc())
+	mux := New()
+	entry := newEntry("/", fakeHandlerFunc(), mux)
 	for _, method := range methods {
 		if !entry.isAcceptMethod(method) {
 			t.Fatalf("default should be accept all methods but %s not accept", method)

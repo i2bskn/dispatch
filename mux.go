@@ -9,7 +9,7 @@ import (
 // Mux is http.ServeMux compatible HTTP multiplexer.
 type Mux struct {
 	mu              sync.RWMutex
-	m               *node
+	entries         *node
 	middleware      []func(http.Handler) http.Handler
 	NotFoundHandler http.Handler
 }
@@ -34,13 +34,13 @@ func (mux *Mux) Handle(pattern string, h http.Handler) *Entry {
 		panic("http: nil handler")
 	}
 
-	if mux.m == nil {
-		mux.m = new(node)
+	if mux.entries == nil {
+		mux.entries = new(node)
 	}
 
 	p := cleanPath(pattern)
-	e := newEntry(p, h)
-	mux.m.add(p, e)
+	e := newEntry(p, h, mux)
+	mux.entries.add(p, e)
 	return e
 }
 
@@ -60,9 +60,6 @@ func (mux *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h, r := mux.Handler(r)
-	for i := len(mux.middleware) - 1; i >= 0; i-- {
-		h = mux.middleware[i](h)
-	}
 	h.ServeHTTP(w, r)
 }
 
@@ -71,8 +68,8 @@ func (mux *Mux) Handler(r *http.Request) (http.Handler, *http.Request) {
 	mux.mu.RLock()
 	defer mux.mu.RUnlock()
 
-	if e, r := mux.m.match(r.URL.Path, r); e != nil {
-		return e.h, r
+	if e, r := mux.entries.match(r.URL.Path, r); e != nil {
+		return e.handler, r
 	}
 
 	return mux.NotFoundHandler, r
@@ -81,6 +78,9 @@ func (mux *Mux) Handler(r *http.Request) (http.Handler, *http.Request) {
 // Use registers middleware.
 func (mux *Mux) Use(middleware ...func(http.Handler) http.Handler) {
 	mux.middleware = append(mux.middleware, middleware...)
+	mux.entries.traverse(func(e *Entry) {
+		e.buildHandler()
+	})
 }
 
 func cleanPath(p string) string {
@@ -98,4 +98,11 @@ func cleanPath(p string) string {
 	}
 
 	return np
+}
+
+func buildHandler(h http.Handler, middleware ...func(http.Handler) http.Handler) http.Handler {
+	for i := len(middleware) - 1; i >= 0; i-- {
+		h = middleware[i](h)
+	}
+	return h
 }

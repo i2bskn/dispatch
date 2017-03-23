@@ -7,16 +7,21 @@ import (
 // Entry contains handler and routing information.
 type Entry struct {
 	pattern string
-	h       http.Handler
+	origin  http.Handler
+	handler http.Handler
 	method  HTTPMethod
+	mux     *Mux
 }
 
-func newEntry(pattern string, h http.Handler) *Entry {
-	return &Entry{
+func newEntry(pattern string, origin http.Handler, mux *Mux) *Entry {
+	e := &Entry{
 		pattern: pattern,
-		h:       h,
+		origin:  origin,
 		method:  MethodAny,
+		mux:     mux,
 	}
+	e.buildHandler()
+	return e
 }
 
 // Methods is change the allow HTTP methods.
@@ -30,6 +35,13 @@ func (e *Entry) isAcceptMethod(m string) bool {
 		return false
 	}
 	return true
+}
+
+func (e *Entry) buildHandler() {
+	e.handler = e.origin
+	for i := len(e.mux.middleware) - 1; i >= 0; i-- {
+		e.handler = e.mux.middleware[i](e.handler)
+	}
 }
 
 // HTTPMethod is type of HTTP method flag.

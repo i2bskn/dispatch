@@ -190,6 +190,16 @@ func (n *node) match(path string, r *http.Request) (*Entry, *http.Request) {
 	return nil, r
 }
 
+func (n *node) traverse(f func(*Entry)) {
+	for _, entry := range n.entries {
+		f(entry)
+	}
+
+	for _, child := range n.children {
+		child.traverse(f)
+	}
+}
+
 func min(a, b int) int {
 	if a >= b {
 		return b
