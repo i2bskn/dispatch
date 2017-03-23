@@ -77,10 +77,15 @@ func (mux *Mux) Handler(r *http.Request) (http.Handler, *http.Request) {
 
 // Use registers middleware.
 func (mux *Mux) Use(middleware ...func(http.Handler) http.Handler) {
+	mux.mu.Lock()
+	defer mux.mu.Unlock()
+
 	mux.middleware = append(mux.middleware, middleware...)
-	mux.entries.traverse(func(e *Entry) {
-		e.buildHandler()
-	})
+	if mux.entries != nil {
+		mux.entries.traverse(func(e *Entry) {
+			e.buildHandler()
+		})
+	}
 }
 
 func cleanPath(p string) string {
