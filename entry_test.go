@@ -41,6 +41,17 @@ func TestIsAcceptMethod(t *testing.T) {
 			t.Fatalf("default should be accept all methods but %s not accept", method)
 		}
 	}
+
+	entry.Methods(MethodPost | MethodPut)
+	for _, method := range methods {
+		if method == http.MethodPost || method == http.MethodPut {
+			continue
+		}
+
+		if entry.isAcceptMethod(method) {
+			t.Fatalf("%s match to (MethodPost | MethodPut)", method)
+		}
+	}
 }
 
 func TestParseMethod(t *testing.T) {
@@ -49,5 +60,11 @@ func TestParseMethod(t *testing.T) {
 		if actual != tensileMethods[i] {
 			t.Fatalf("parseMethod(%s): expected %v, actual %v", methods[i], tensileMethods[i], actual)
 		}
+	}
+
+	expected := MethodUnknown
+	actual := parseMethod("UNKNOWN")
+	if expected != actual {
+		t.Fatalf("parseMethod(\"UNKNOWN\"): expected %v, actual %v", expected, actual)
 	}
 }
