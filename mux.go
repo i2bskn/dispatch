@@ -104,10 +104,3 @@ func cleanPath(p string) string {
 
 	return np
 }
-
-func buildHandler(h http.Handler, middleware ...func(http.Handler) http.Handler) http.Handler {
-	for i := len(middleware) - 1; i >= 0; i-- {
-		h = middleware[i](h)
-	}
-	return h
-}

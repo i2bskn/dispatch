@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+type middlewareTest struct {
+	wrapped bool
+}
+
 var methods = []string{
 	http.MethodGet,
 	http.MethodHead,
@@ -33,16 +37,35 @@ func fakeHandlerFunc() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 }
 
-func TestIsAcceptMethod(t *testing.T) {
+func fakeMiddleware(m *middlewareTest) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		m.wrapped = true
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+	}
+}
+
+func TestEntry(t *testing.T) {
+	mt := new(middlewareTest)
 	mux := New()
+	mux.middleware = append(mux.middleware, fakeMiddleware(mt))
 	entry := newEntry("/", fakeHandlerFunc(), mux)
+
+	if !mt.wrapped {
+		t.Fatal("middleware is not applied")
+	}
+
 	for _, method := range methods {
 		if !entry.isAcceptMethod(method) {
 			t.Fatalf("default should be accept all methods but %s not accept", method)
 		}
 	}
 
-	entry.Methods(MethodPost | MethodPut)
+	expected := MethodPost | MethodPut
+	entry.Methods(expected)
+	if entry.method != expected {
+		t.Fatalf("accept methods is not update: expected %v, actual %v", expected, entry.method)
+	}
+
 	for _, method := range methods {
 		if method == http.MethodPost || method == http.MethodPut {
 			continue
