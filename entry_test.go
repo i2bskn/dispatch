@@ -5,10 +5,6 @@ import (
 	"testing"
 )
 
-type middlewareTest struct {
-	wrapped bool
-}
-
 var methods = []string{
 	http.MethodGet,
 	http.MethodHead,
@@ -31,17 +27,6 @@ var tensileMethods = []HTTPMethod{
 	MethodConnect,
 	MethodOptions,
 	MethodTrace,
-}
-
-func fakeHandlerFunc() http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-}
-
-func fakeMiddleware(m *middlewareTest) func(http.Handler) http.Handler {
-	return func(h http.Handler) http.Handler {
-		m.wrapped = true
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-	}
 }
 
 func TestEntry(t *testing.T) {

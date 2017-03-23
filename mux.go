@@ -51,14 +51,6 @@ func (mux *Mux) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Req
 
 // ServeHTTP dispatches matching requests to handlers.
 func (mux *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.RequestURI == "*" {
-		if r.ProtoAtLeast(1, 1) {
-			w.Header().Set("Connection", "close")
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
 	h, r := mux.Handler(r)
 	h.ServeHTTP(w, r)
 }
