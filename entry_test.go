@@ -1,4 +1,4 @@
-package tensile
+package dispatch
 
 import (
 	"net/http"
@@ -17,7 +17,7 @@ var methods = []string{
 	http.MethodTrace,
 }
 
-var tensileMethods = []HTTPMethod{
+var pkgMethods = []HTTPMethod{
 	MethodGet,
 	MethodHead,
 	MethodPost,
@@ -65,8 +65,8 @@ func TestEntry(t *testing.T) {
 func TestParseMethod(t *testing.T) {
 	for i := 0; i < len(methods); i++ {
 		actual := parseMethod(methods[i])
-		if actual != tensileMethods[i] {
-			t.Fatalf("parseMethod(%s): expected %v, actual %v", methods[i], tensileMethods[i], actual)
+		if actual != pkgMethods[i] {
+			t.Fatalf("parseMethod(%s): expected %v, actual %v", methods[i], pkgMethods[i], actual)
 		}
 	}
 

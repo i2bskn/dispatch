@@ -1,5 +1,5 @@
 /*
-Package tensile is net/http compatible HTTP request multiplexer.
+Package dispatch is net/http compatible HTTP request multiplexer.
 
 For example:
 	package main
@@ -9,15 +9,15 @@ For example:
 		"log"
 		"net/http"
 
-		"github.com/i2bskn/tensile"
+		"github.com/i2bskn/dispatch"
 	)
 
 	func hello(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello %s!", tensile.Param(r, "name"))
+		fmt.Fprintf(w, "Hello %s!", dispatch.Param(r, "name"))
 	}
 
 	func main() {
-		mux := tensile.New()
+		mux := dispatch.New()
 		mux.HandleFunc("/hello/:name", hello)
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, "Home!")
@@ -26,4 +26,4 @@ For example:
 		log.Fatal(http.ListenAndServe(":8080", mux))
 	}
 */
-package tensile
+package dispatch

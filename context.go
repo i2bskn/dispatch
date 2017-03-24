@@ -1,4 +1,4 @@
-package tensile
+package dispatch
 
 import (
 	"context"
