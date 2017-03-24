@@ -44,10 +44,10 @@ func (rt *Route) buildHandler() {
 	}
 }
 
-// HTTPMethod is type of HTTP method flag.
+// HTTPMethod is type of HTTP method.
 type HTTPMethod uint16
 
-// These flags define HTTP methods that each Route to allow.
+// These define HTTP methods that each Route to allow.
 const (
 	MethodGet HTTPMethod = 1 << iota
 	MethodHead

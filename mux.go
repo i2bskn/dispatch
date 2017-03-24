@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-// Mux is http.ServeMux compatible HTTP multiplexer.
+// Mux is http.ServeMux compatible HTTP multiplexer object.
 type Mux struct {
 	mu              sync.RWMutex
 	entries         *node
@@ -49,7 +49,7 @@ func (mux *Mux) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Req
 	return mux.Handle(pattern, http.HandlerFunc(h))
 }
 
-// ServeHTTP dispatches matching requests to handlers.
+// ServeHTTP dispatches matching requests to handler.
 func (mux *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h, r := mux.Handler(r)
 	h.ServeHTTP(w, r)
@@ -74,8 +74,8 @@ func (mux *Mux) Use(middleware ...func(http.Handler) http.Handler) {
 
 	mux.middleware = append(mux.middleware, middleware...)
 	if mux.entries != nil {
-		mux.entries.traverse(func(rt *Route) {
-			rt.buildHandler()
+		mux.entries.traverse(func(route *Route) {
+			route.buildHandler()
 		})
 	}
 }
