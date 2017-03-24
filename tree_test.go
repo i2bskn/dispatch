@@ -73,9 +73,10 @@ func TestTree(t *testing.T) {
 	tests := []routeTest{
 		{"/abc", "/abc", "/abc", "", ""},
 		{"/abc/", "/abc/def", "/def", "", ""},
-		{"/aaa/:id", "/aaa/123", "/aaa/123", "id", "123"},
 		{"/aaa/:id/bbb", "/aaa/456/bbb", "/aaa/456/bbb", "id", "456"},
-		{"/aaa/bbb/ccc", "/aaa/bbb/ccc", "/aaa/bbb/ccc", "", ""},
+		{"/aaa/:id", "/aaa/123", "/aaa/123", "id", "123"},
+		{"/aaa/b", "/aaa/b", "/aaa/b", "", ""},
+		{"/aaa/bbbb/ccccc", "/aaa/bbbb/ccccc", "/aaa/bbbb/ccccc", "", ""},
 		{"/", "/", "/", "", ""},
 	}
 
