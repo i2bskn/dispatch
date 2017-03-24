@@ -144,6 +144,14 @@ func (n *node) match(path string, r *http.Request) (*Entry, *http.Request) {
 			}
 		}
 	} else if n.kind != root {
+		if n.label == path {
+			for _, e := range n.entries {
+				if e.isAcceptMethod(r.Method) {
+					return e, r
+				}
+			}
+		}
+
 		i := len(n.label)
 		if len(path) < i || path[:i] != n.label {
 			return nil, r
@@ -153,14 +161,6 @@ func (n *node) match(path string, r *http.Request) (*Entry, *http.Request) {
 			for _, e := range n.entries {
 				if e.isAcceptMethod(r.Method) {
 					r.URL.Path = path
-					return e, r
-				}
-			}
-		}
-
-		if len(path) == i {
-			for _, e := range n.entries {
-				if e.isAcceptMethod(r.Method) {
 					return e, r
 				}
 			}

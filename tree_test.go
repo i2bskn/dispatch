@@ -5,51 +5,87 @@ import (
 	"testing"
 )
 
-func TestTree(t *testing.T) {
-	mux := New()
-	patterns := []string{"/", "/abc", "/abc/", "/aaa/:name", "/aaa/bbb/ccc"}
-	for _, pattern := range patterns {
-		mux.Handle(pattern, fakeHandlerFunc())
-	}
+type routeTest struct {
+	pattern          string
+	requestPath      string
+	pathAfterMatched string
+	paramName        string
+	paramValue       string
+}
 
-	entryCount := 0
-	mux.entries.traverse(func(e *Entry) {
-		entryCount++
+func fakeEntry(pattern string) *Entry {
+	return &Entry{
+		pattern: pattern,
+		method:  MethodAny,
+	}
+}
+
+func entryCount(tree *node) int {
+	i := 0
+	tree.traverse(func(e *Entry) {
+		i++
 	})
-	if entryCount != len(patterns) {
-		t.Fatalf("entryCount: expected %d, actual %d", len(patterns), entryCount)
-	}
+	return i
+}
 
-	for _, pattern := range patterns {
-		r := httptest.NewRequest("", pattern, nil)
-		e, r := mux.entries.match(pattern, r)
+func testEntryCount(t *testing.T, tree *node, expected int) {
+	actual := entryCount(tree)
+	if expected != actual {
+		t.Fatalf("number of entries unexpected: expected %d, actual %d", expected, actual)
+	}
+}
+
+func testRouteMatch(t *testing.T, tree *node, tests []routeTest) {
+	for _, tt := range tests {
+		r := httptest.NewRequest("", tt.requestPath, nil)
+		e, r := tree.match(r.URL.Path, r)
 		if e == nil {
-			t.Fatalf("node.match(%s): not found", pattern)
+			t.Fatalf("route not found: %s", tt.requestPath)
 		}
 
-		if e.pattern != pattern {
-			t.Fatalf("node.match(%s): pattern unmatch: entry.pattern %s", pattern, e.pattern)
+		if e.pattern != tt.pattern {
+			t.Fatalf("pattern unmatch: expected %s, actual %s", tt.pattern, e.pattern)
+		}
+
+		if r.URL.Path != tt.pathAfterMatched {
+			t.Fatalf("unexpected path after matched: expected %s, actual %s", tt.pathAfterMatched, r.URL.Path)
+		}
+
+		if len(tt.paramName) > 0 {
+			actual := Param(r, tt.paramName)
+			if tt.paramValue != actual {
+				t.Fatalf("unexpected param value: path %s, name %s, value %s", tt.requestPath, tt.paramName, actual)
+			}
 		}
 	}
+}
 
+func testNotFound(t *testing.T, tree *node) {
 	r := httptest.NewRequest("", "/notfound", nil)
-	e, r := mux.entries.match(r.URL.Path, r)
+	e, r := tree.match(r.URL.Path, r)
 	if e != nil {
-		t.Fatalf("node.match(\"/notfound\"): actual %s", e.pattern)
+		t.Fatalf("unexpected match route: %s", e.pattern)
+	}
+}
+
+func TestTree(t *testing.T) {
+	tree := new(node)
+	tests := []routeTest{
+		{"/abc", "/abc", "/abc", "", ""},
+		{"/abc/", "/abc/def", "/def", "", ""},
+		{"/aaa/:id", "/aaa/123", "/aaa/123", "id", "123"},
+		{"/aaa/:id/bbb", "/aaa/456/bbb", "/aaa/456/bbb", "id", "456"},
+		{"/aaa/bbb/ccc", "/aaa/bbb/ccc", "/aaa/bbb/ccc", "", ""},
+		{"/", "/", "/", "", ""},
 	}
 
-	r = httptest.NewRequest("", "/aaa/123", nil)
-	e, r = mux.entries.match(r.URL.Path, r)
-	if e == nil {
-		t.Fatal("param routing did not match")
+	for _, tt := range tests {
+		tree.add(tt.pattern, fakeEntry(tt.pattern))
 	}
-	if e.pattern != "/aaa/:name" {
-		t.Fatalf("node.match(\"/aaa/123\"): actual %s", e.pattern)
-	}
-	actual := Param(r, "name")
-	if actual != "123" {
-		t.Fatalf("Param(r, \"name\"): expected 123, actual %s", actual)
-	}
+
+	testEntryCount(t, tree, len(tests))
+	testRouteMatch(t, tree, tests)
+	testNotFound(t, tree)
 }
 
 func TestMin(t *testing.T) {
