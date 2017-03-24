@@ -4,8 +4,8 @@ import (
 	"net/http"
 )
 
-// Entry contains handler and routing information.
-type Entry struct {
+// Route contains handler and routing information.
+type Route struct {
 	pattern string
 	origin  http.Handler
 	handler http.Handler
@@ -13,41 +13,41 @@ type Entry struct {
 	mux     *Mux
 }
 
-func newEntry(pattern string, origin http.Handler, mux *Mux) *Entry {
-	e := &Entry{
+func newRoute(pattern string, origin http.Handler, mux *Mux) *Route {
+	route := &Route{
 		pattern: pattern,
 		origin:  origin,
 		method:  MethodAny,
 		mux:     mux,
 	}
-	e.buildHandler()
-	return e
+	route.buildHandler()
+	return route
 }
 
 // Methods is change the allow HTTP methods.
-func (e *Entry) Methods(m HTTPMethod) *Entry {
-	e.method = m
-	return e
+func (rt *Route) Methods(m HTTPMethod) *Route {
+	rt.method = m
+	return rt
 }
 
-func (e *Entry) isAcceptMethod(m string) bool {
-	if (e.method & parseMethod(m)) == 0 {
+func (rt *Route) isAcceptMethod(m string) bool {
+	if (rt.method & parseMethod(m)) == 0 {
 		return false
 	}
 	return true
 }
 
-func (e *Entry) buildHandler() {
-	e.handler = e.origin
-	for i := len(e.mux.middleware) - 1; i >= 0; i-- {
-		e.handler = e.mux.middleware[i](e.handler)
+func (rt *Route) buildHandler() {
+	rt.handler = rt.origin
+	for i := len(rt.mux.middleware) - 1; i >= 0; i-- {
+		rt.handler = rt.mux.middleware[i](rt.handler)
 	}
 }
 
 // HTTPMethod is type of HTTP method flag.
 type HTTPMethod uint16
 
-// These flags define HTTP methods that each Entry to allow.
+// These flags define HTTP methods that each Route to allow.
 const (
 	MethodGet HTTPMethod = 1 << iota
 	MethodHead

@@ -21,8 +21,8 @@ func New() *Mux {
 	}
 }
 
-// Handle registers handler and returns Entry.
-func (mux *Mux) Handle(pattern string, h http.Handler) *Entry {
+// Handle registers handler and returns Route.
+func (mux *Mux) Handle(pattern string, h http.Handler) *Route {
 	mux.mu.Lock()
 	defer mux.mu.Unlock()
 
@@ -39,13 +39,13 @@ func (mux *Mux) Handle(pattern string, h http.Handler) *Entry {
 	}
 
 	p := cleanPath(pattern)
-	e := newEntry(p, h, mux)
-	mux.entries.add(p, e)
-	return e
+	rt := newRoute(p, h, mux)
+	mux.entries.add(p, rt)
+	return rt
 }
 
-// HandleFunc registers handler function and returns Entry.
-func (mux *Mux) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Request)) *Entry {
+// HandleFunc registers handler function and returns Route.
+func (mux *Mux) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Request)) *Route {
 	return mux.Handle(pattern, http.HandlerFunc(h))
 }
 
@@ -74,8 +74,8 @@ func (mux *Mux) Use(middleware ...func(http.Handler) http.Handler) {
 
 	mux.middleware = append(mux.middleware, middleware...)
 	if mux.entries != nil {
-		mux.entries.traverse(func(e *Entry) {
-			e.buildHandler()
+		mux.entries.traverse(func(rt *Route) {
+			rt.buildHandler()
 		})
 	}
 }

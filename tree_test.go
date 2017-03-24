@@ -13,23 +13,23 @@ type routeTest struct {
 	paramValue       string
 }
 
-func fakeEntry(pattern string) *Entry {
-	return &Entry{
+func fakeRoute(pattern string) *Route {
+	return &Route{
 		pattern: pattern,
 		method:  MethodAny,
 	}
 }
 
-func entryCount(tree *node) int {
+func routeCount(tree *node) int {
 	i := 0
-	tree.traverse(func(e *Entry) {
+	tree.traverse(func(route *Route) {
 		i++
 	})
 	return i
 }
 
-func testEntryCount(t *testing.T, tree *node, expected int) {
-	actual := entryCount(tree)
+func testRouteCount(t *testing.T, tree *node, expected int) {
+	actual := routeCount(tree)
 	if expected != actual {
 		t.Fatalf("number of entries unexpected: expected %d, actual %d", expected, actual)
 	}
@@ -73,18 +73,20 @@ func TestTree(t *testing.T) {
 	tests := []routeTest{
 		{"/abc", "/abc", "/abc", "", ""},
 		{"/abc/", "/abc/def", "/def", "", ""},
-		{"/aaa/:id/bbb", "/aaa/456/bbb", "/aaa/456/bbb", "id", "456"},
-		{"/aaa/:id", "/aaa/123", "/aaa/123", "id", "123"},
+		{"/aaa/:id/bbb", "/aaa/123/bbb", "/aaa/123/bbb", "id", "123"},
+		{"/aaa/:id", "/aaa/456", "/aaa/456", "id", "456"},
+		{"/aaa/:id/ccc", "/aaa/789/ccc", "/aaa/789/ccc", "id", "789"},
+		{"/bbb/:name", "/bbb/test", "/bbb/test", "name", "test"},
 		{"/aaa/b", "/aaa/b", "/aaa/b", "", ""},
 		{"/aaa/bbbb/ccccc", "/aaa/bbbb/ccccc", "/aaa/bbbb/ccccc", "", ""},
 		{"/", "/", "/", "", ""},
 	}
 
 	for _, tt := range tests {
-		tree.add(tt.pattern, fakeEntry(tt.pattern))
+		tree.add(tt.pattern, fakeRoute(tt.pattern))
 	}
 
-	testEntryCount(t, tree, len(tests))
+	testRouteCount(t, tree, len(tests))
 	testRouteMatch(t, tree, tests)
 	testNotFound(t, tree)
 }
