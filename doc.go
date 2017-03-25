@@ -1,5 +1,5 @@
 /*
-Package dispatch is net/http compatible HTTP request multiplexer.
+Package dispatch is HTTP request multiplexer compatible with ServeMux of net/http.
 
 For example:
 	package main

@@ -11,20 +11,20 @@ func TestParam(t *testing.T) {
 	r := httptest.NewRequest("", "/", nil)
 	actual := Param(r, key)
 	if expected != actual {
-		t.Fatalf("registerd params: expected empty, actual %v", actual)
+		t.Fatalf("registered params: expected empty, actual %v", actual)
 	}
 
 	expected = "value1"
 	r = setParam(r, key, expected)
 	actual = Param(r, key)
 	if expected != actual {
-		t.Fatalf("registerd param: expected %v, actual %v", expected, actual)
+		t.Fatalf("registered param: expected %v, actual %v", expected, actual)
 	}
 
 	expected = "value2"
 	r = setParam(r, key, expected)
 	actual = Param(r, key)
 	if expected != actual {
-		t.Fatalf("registerd params: expected %v, actual %v", expected, actual)
+		t.Fatalf("registered params: expected %v, actual %v", expected, actual)
 	}
 }
